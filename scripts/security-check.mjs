@@ -220,8 +220,21 @@ async function main() {
   }
 
   {
-    const { data } = await w1.from('profiles').select('*')
-    check('исполнитель не видит чужие профили', (data ?? []).length === 1, `получено ${data?.length ?? 0}`)
+    // Имена коллег видны намеренно: иначе непонятно, кто поставил задачу.
+    // Важно другое — чужой профиль нельзя изменить.
+    const { data: others } = await admin
+      .from('profiles')
+      .select('id')
+      .neq('id', w1Id)
+      .limit(1)
+      .single()
+
+    const { error, data } = await w1
+      .from('profiles')
+      .update({ full_name: 'Взломанное имя' })
+      .eq('id', others.id)
+      .select()
+    check('исполнитель не может переименовать коллегу', !!error || (data ?? []).length === 0)
   }
 
   console.log(`\nИтог: пройдено ${passed}, провалено ${failed}`)

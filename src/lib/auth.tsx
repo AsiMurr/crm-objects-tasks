@@ -41,15 +41,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  // Supabase обновляет токен сам и присылает новый объект сессии,
+  // в том числе когда возвращаешься на вкладку. Пользователь при этом
+  // тот же, поэтому следим за его id, а не за объектом сессии, —
+  // иначе профиль перезагружался бы снова и снова.
+  const userId = session?.user?.id ?? null
+
   useEffect(() => {
-    if (!session) return
+    if (!userId) return
     let cancelled = false
 
-    setLoading(true)
+    // Экран загрузки показываем только при первом входе.
+    // При обновлении токена данные на экране остаются на месте.
+    setProfile((current) => {
+      if (!current) setLoading(true)
+      return current
+    })
+
     supabase
       .from('profiles')
       .select('*')
-      .eq('id', session.user.id)
+      .eq('id', userId)
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return
@@ -60,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [session])
+  }, [userId])
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })

@@ -271,11 +271,13 @@ alter table tasks        enable row level security;
 alter table task_history enable row level security;
 
 -- ---------- profiles ----------
--- каждый видит себя; постановщик видит всех (нужен список исполнителей)
+-- Имя и роль коллег видны всем, кто вошёл: исполнителю нужно знать,
+-- кто поставил задачу и кто написал замечание. Чувствительных данных
+-- в таблице нет, а менять её нельзя никому.
 create policy "profiles select"
   on profiles for select
   to authenticated
-  using (id = auth.uid() or is_manager());
+  using (true);
 
 -- менять профили из приложения нельзя: политик insert/update/delete нет.
 
